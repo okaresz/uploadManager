@@ -5,14 +5,14 @@
  */
 
  //defined('_JEXEC') or die('Direct access not allowed');
- 
+
 //if(!defined('C_UPLOADER')) {
- 
+
  //define('C_UPLOADER', 1);
 
 	// if(!defined('MY_LOADER'))
 		// require_once(dirname(__FILE__).DS.'loader.php');
-		
+
 	/**
 	* flags for file/directory copy, move
 	*/
@@ -35,15 +35,15 @@
 	  *
 	  */
 	class uploadHelper {
- 
+
 		/* name of the field(s) of type file in the form */
 		protected $key_field;
 		protected $sub_dir_path;
 		protected $dir_path;
-				
+
 		//generate guid
 		public static function uuid() {
-	  
+
 		   // The field names refer to RFC 4122 section 4.1.2
 
 		   return sprintf('%04x%04x-%04x-%03x4-%04x-%04x%04x%04x',
@@ -54,10 +54,10 @@
 				   // 8 bits, the last two of which (positions 6 and 7) are 01, for "clk_seq_hi_res"
 				   // (hence, the 2nd hex digit after the 3rd hyphen can only be 1, 5, 9 or d)
 				   // 8 bits for "clk_seq_low"
-			   mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535) // 48 bits for "node" 
-		   ); 
+			   mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535) // 48 bits for "node"
+		   );
 		}
-			
+
 		 /**
 		  * file name without extension
 		  *
@@ -65,7 +65,7 @@
 		  * @return string
 		  */
 		static function file_name($file) { return preg_replace('/(\.[^\.]+){1,2}$/', '', basename($file)); }
-	
+
 		/**
 		 * truncate a string and return a string of a maximum of $length characters, if $smart is true then the input string will not truncate in the middle of a word
 		 *
@@ -76,22 +76,38 @@
 		 * @return string
 		 */
 		public static function truncate($str, $length = 80, $append = '...', $smart = true) {
-		
+
 			if(strlen($str) <= $length || $length == 0)
 				return $str;
-				
+
 			if(!$smart)
 				return substr($str, 0, max($length - strlen($append), 0)).$append;
-				
+
 			return preg_replace('/(((<[^\/][^>]*>)|(<[^>]*)|(\w|-|\(|\[|<))*)\z/m', '', substr($str, 0, max($length - strlen($append), 0))).$append;
 		}
 
+		/** Fix the indexing of the file info array in post data.
+		*	The array is endexed by the client side javascript, and may not be continuous.*/
+		public static function fixFileArrayIndexing()
+		{
+			if( isset($_POST['uploadManager_postArrayName']) && !empty($_POST['uploadManager_postArrayName']) )
+			{
+				if( isset($_POST[$_POST['uploadManager_postArrayName']]) )
+				{
+					foreach( $_POST[$_POST['uploadManager_postArrayName']] as $managerInstanceName => $fileInfoArray )
+					{
+						$_REQUEST[$_REQUEST['uploadManager_postArrayName']][$managerInstanceName] = $_POST[$_POST['uploadManager_postArrayName']][$managerInstanceName] = array_merge( array(), $fileInfoArray );
+					}
+				}
+			}
+		}
+
 		public static function getVar($name) {
-		
+
 			return self::get_param($_REQUEST, $name);
 		}
 		/*
-		
+
 			route method to implement if you use SEF url
 		*/
 		public static function route($url) {
@@ -101,39 +117,39 @@
 		}
 
 		/*
-		
+
 			public method to generate security token
 		*/
 		public static function token() {
-		
+
 			return '';
 		}
 
 		/*
-		
+
 			public method to validate security token
 		*/
 		public static function checkToken() {
-		
+
 			return true;
 		}
 
 		/*
-		
+
 			public method to encrypt path
 			please use a more obscur encryption
 		*/
 		public static function encrypt($name, $key = '') {
-		
+
 			return base64_encode($name);
 		}
 
 		/*
-		
+
 			public method dor path decription
 		*/
 		public static function decrypt($name, $key = '') {
-		
+
 			return base64_decode($name);
 		}
 
@@ -167,7 +183,7 @@
 			preg_match('/(?:\.)([^\.]*){1,1}$/', basename($file), $m);
 			return self::get_param($m, 1);
 		}
-		
+
 		   /**
 			* file copy
 			* <pre>
@@ -195,7 +211,7 @@
 
 			if(is_dir($dest))
 				$dest = self::add_path_delimiter($dest).basename($source);
-			
+
 			if(!is_file($source) || !self::mkdirs(dirname($dest)))
 				return false;
 				//source == dest ?
@@ -203,12 +219,12 @@
 					//existing but older or always overwrite
 					if($overwrite == _COPY_CREATE_NEW)
 						$dest = self::create_filename($dest);
-						
+
 					if(($overwrite == _COPY_SKIP_IF_NEWER && filemtime($source) > filemtime($dest)) || $overwrite == _COPY_SKIP_NEVER || $overwrite == _COPY_CREATE_NEW) {
-					
+
 						if(!copy($source, $dest))
 						return false;
-						
+
 						touch($dest, filemtime($source));
 					}
 					//else don't touch
@@ -261,10 +277,10 @@
 				return $path;
 
 			$ext = self::file_ext($lowercaseext ? strtolower($name) : $name);
-			
+
 			if(!$dir)
 				$dir = self::add_path_delimiter($dir.dirname($name));
-				
+
 			$base = self::file_name($name);
 
 			$i = 1;
@@ -273,7 +289,7 @@
 		 }
 
 		public static function truncate_str($str, $length = 80, $append = '...', $smart = true) {
-		
+
 			if(strlen($str) <= $length || $length == 0)
 				return $str;
 			if(!$smart)
@@ -285,9 +301,9 @@
 
 		 return iconv($charset, $charset.'//IGNORE', html_entity_decode(preg_replace('/&(.)(acute|circ|grave|uml|cedil|tilde);/si', '$1', htmlentities($str, $quote_style, $charset)), $quote_style, $charset));
 		}
-		
-		public static function safe_name($name) { 
- 
+
+		public static function safe_name($name) {
+
 			return strtolower(preg_replace('/[^a-z0-9,._]+/i', '-', self::str_search($name)));
 		}
 
@@ -329,14 +345,14 @@
 				$dir = '/'.$dir;
 
 			if(!is_dir($dir.DS) && !file_exists($dir))
-			
+
 				if(!mkdir($dir)) {
 						// echo ' '.$dir;
 						return false;
 				}
 
 			// chmod($dir, $chmod);
-			
+
 			for($j = 1; $j < count($dirs); $j++) {
 
 				$dir .= "/".$dirs[$j];
@@ -345,10 +361,10 @@
 						// echo ' '.$dir;
 						return false;
 					}
-			
+
 				// chmod($dir, $chmod);
 			}
-			
+
 			// chmod($dir, $chmod);
 			return $dir;
 		 }
@@ -367,7 +383,7 @@
 
 			if(!is_file($this->dir_path.DS.'index.html'))
 				file_put_contents($this->dir_path.DS.'index.html', '<html></html>');
-				
+
 			$this->key_field = $key_field;
 		}
 
@@ -377,26 +393,26 @@
 		   * @return array
 		   */
 		function upload_file() {
-		  
+
 			$res = array();
-			
+
 			if($this->get_param($this->get_param($_FILES, $this->key_field), 'error') != UPLOAD_ERR_OK)
 				return false;
-			
+
 			$path = $this->create_filename($this->get_param($this->get_param($_FILES, $this->key_field), 'name'), $this->dir_path);
-			
+
 			if(!$this->file_copy ($path, $this->get_param($this->get_param($_FILES, $this->key_field), 'tmp_name')))
 				return false;
 
 			/* file name */
 			$res[0]['name'] = $_FILES[$this->key_field]['name'];
-			
+
 			/* uploaded file name */
 			$res[0]['path'] = $path;
-			
+
 			/* uploaded file mimetype */
 			$res[0]['type'] = $_FILES[$this->key_field]['type'];
-			
+
 			return $res;
 		}
 
@@ -406,18 +422,18 @@
 	   * @return array
 	   */
 		function upload_files() {
-	  
+
 			$res = array();
-			
+
 			if(is_array($this->get_param($this->get_param($_FILES, $this->key_field), 'name'))) {
-			
+
 				for($i = 0; $i < count($_FILES[$this->key_field]['name']); $i++) {
-				
+
 					if($_FILES[$this->key_field]['error'][$i] != UPLOAD_ERR_OK)
 						return false;
-						
+
 					$path = $this->create_filename ($_FILES[$this->key_field]['name'][$i], $this->dir_path);
-					
+
 					if(!$this->file_copy ($path, $_FILES[$this->key_field]['tmp_name'][$i]))
 						return false;
 
@@ -425,11 +441,14 @@
 					$res[$i]['path'] = $path;
 					$res[$i]['type'] = $_FILES[$this->key_field]['type'][$i];
 				}
-				
+
 			} else return $this->upload_file();
-			
+
 			return $res;
 		}
 	}
+
+	uploadHelper::fixFileArrayIndexing();
+
 //}
 ?>

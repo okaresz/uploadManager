@@ -8,26 +8,29 @@
   */
 
 	defined('_JEXEC') or die('Acces denied');
-	
+
 	header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date du passé
 
 	parse_str($_SERVER['QUERY_STRING'], $match);
 
-	
-	if(is_file($file = uploadHelper::decrypt(array_shift(array_keys($match))))) {
-	
+	$ak = array_keys($match);
+	$file = realpath( uploadHelper::decrypt(array_shift($ak)) );
+
+	if(is_file($file)) {
+
 		if(realpath($file) == TEMP_PATH.DS.basename($file)) {
-		
+
 			header('Content-Type: application/octet-stream');
-			header('Content-Disposition: attachment;filename="'.uploadHelper::safe_name(uploadHelper::getVar('filename', basename($file))).'"');
+			//header('Content-Disposition: attachment;filename="'.uploadHelper::safe_name(uploadHelper::getVar('filename', basename($file))).'"');
+			header('Content-Disposition: attachment;filename="'.uploadHelper::getVar('filename', basename($file)).'"');
 			header('Content-Length: '.filesize($file));
-			
+
 			readfile($file);
 			exit();
 		}
 	}
-	
+
 	header('HTTP/1.0 404 Not Found');
 	exit();
 ?>

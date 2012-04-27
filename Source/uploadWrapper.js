@@ -1,3 +1,17 @@
+/*
+---
+script: uploadWrapper.js
+license: MIT-style license.
+description: Wrapper and convenience classes for uploadManager
+copyright: Copyright (c) 2006 - 2012 Károly Oláh
+authors: [Károly Oláh]
+
+requires:
+  uploadManager
+provides: [MultiFileUpload], [UploadManagerWrapper]
+...
+*/
+
 var MultiFileUpload = new Class(
 {
 	Implements: Options,
@@ -115,18 +129,25 @@ var MultiFileUpload = new Class(
 	}
 });
 
-var MootoolsUploadManagerWrapper = new Class(
+
+/** Wrapper for uploadManager.
+*	This class replaces all old-style file input fields with an uploadManager instance.
+*	This allows multiple file upload fields in one form, and multiple files per field.
+*	For a file field to be replaced, it must have the class set with the fileInputClass option.
+*	If the browser doesn't support uploadManager functionality, the user can chose to fall back to the legacy file field.
+*		In this case, the file field can be duplicated with a little plus link to upload multiple files.*/
+var UploadManagerWrapper = new Class(
 {
 	options: {
-		base: 'php/upload.php',
+		base: '../php/upload.php',
 
   		//if this is false, the action specified in the HTML script is left as is
-  		formAction: 'php/handleupload.php',
+  		formAction: false,
 
 		//action to use when falling back to legacy file upload.
 		//Can be the same as formAction.
 		//If this is false, formAction is used for legacy as well.
-		legacyFormAction: 'php/legacyupload.php',
+		legacyFormAction: false,
 
 		//you cannot upload more than 3 files
 		limit: 3,
@@ -143,22 +164,23 @@ var MootoolsUploadManagerWrapper = new Class(
 		maxsize: 3670016,
 
 		//use iframe
-		iframe: false,
+		iframe: true,
 
 		//prefix for upload container id
 		container: 'upload',
 
 		//upload container class
-  		containerClass: 'mtUploadDragDropBox',
+  		//don't forget to change the CSS if you change this!
+  		containerClass: 'uploadManagerDragDropBox',
 
 		//wrapper div class
-		wrapperDivClass: 'mtUploadManager',
+		wrapperDivClass: 'uploadManager',
 
 		//filter uploaded file type
 		//filetype: 'html,rar,zip',
 
   		//class of file type inputs to onvert to mootools Uploader
-  		mootoolsFileInputClass: 'mootoolsUploader',
+  		fileInputClass: 'uploadManager',
 
 		//This array will be in the $_POST data containing all the info of the files uploaded with uploadManager
 		postArrayName: 'uploadManagerFiles',
@@ -228,8 +250,7 @@ var MootoolsUploadManagerWrapper = new Class(
 	{
 		$$('form').each( function(formEl)
 		{
-			var mtFileInputs = formEl.getElements( 'input[type=file].'+this.options.mootoolsFileInputClass );
-			//console.debug(mtFileInputs);return;
+			var mtFileInputs = formEl.getElements( 'input[type=file].'+this.options.fileInputClass );
 			if( mtFileInputs.length > 0 )
 			{
 				for( i in mtFileInputs )
@@ -237,6 +258,9 @@ var MootoolsUploadManagerWrapper = new Class(
 					if( !$(mtFileInputs[i]) ) continue;
 					this.replaceFileInput( $(mtFileInputs[i]) );
 				}
+
+				//save default action value
+				formEl.store( 'defaultFormAction', formEl.get( 'action' ) );
 
 				if( this.options.formAction && !this.legacyUploadExists(formEl) )
 					{ formEl.set( 'action', this.options.formAction ); }
@@ -279,7 +303,7 @@ var MootoolsUploadManagerWrapper = new Class(
 
 		//search for the form and change the action to formAction if there's no legacy file input in the form
 		var parentForm = managerDOM.getParent('form');
-		if( parentForm && !this.legacyUploadExists(parentForm) )
+		if( parentForm && !this.legacyUploadExists(parentForm) && this.options.formAction )
 			{ parentForm.set('action', this.options.formAction); }
 	},
 
@@ -305,11 +329,15 @@ var MootoolsUploadManagerWrapper = new Class(
 		var legacyDOM = uploadManagerElement.retrieve( 'legacyDOM' );
 		legacyDOM.replaces( uploadManagerElement );
 		new Element( 'a', {class: 'useMtUploadLink', href: '#', text: 'Use HTML5 upload', events: { click: this.replaceFileInput.bind(this).pass(legacyDOM) }} ).inject( legacyDOM, 'after' );
+		new Element( '<br>' ).inject( legacyDOM, 'after' );
 		if( MultiFileUpload )
 			{ new MultiFileUpload(legacyDOM); }
 
 		//search for the form and change back the action attribute
-		legacyDOM.getParent('form').set('action', this.options.legacyFormAction);
+		if( this.options.legacyFormAction )
+			{ legacyDOM.getParent('form').set('action', this.options.legacyFormAction); }
+		else
+			{ legacyDOM.getParent('form').set('action', legacyDOM.getParent('form').retrieve('defaultFormAction')); }
 	},
 
  	legacyUploadExists: function( formElement )
@@ -319,7 +347,7 @@ var MootoolsUploadManagerWrapper = new Class(
 });
 
 window.addEvent('domready', function() {
-	new MootoolsUploadManagerWrapper();
+	new UploadManagerWrapper();
 
 	$$('input[type=file]').each( function(fileInput)
 	{

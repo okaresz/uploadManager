@@ -1,2 +1,95 @@
++: add, -: remove, ~: fix or change
+
 Demo/index.html
 	+ Add a submit button and give the form an action - include file handling on the server side in the Demo
+	~ Fix indentation
+	~ Place CSS code to external stylsheet file
+		+ <link> for stylesheet
+	~ place init JS code to external file
+	~ Move upload.js at the end of the scripts to load (upload needs Locale!! How this even worked for you?
+	~ There's no en-GB, only en-US locale in the repo
+	~ script is Locale.js instead of locale.js (404 not found)
+	~ change form method to post (no reason to use get and clutter the address field)
+	~ in onCancel event handler:
+		- uploadManager.getSize('upload').toFileSize());    this is incorrect, the container class can be modified in the options
+		+ uploadManager.getSize(this.options.container).toFileSize());
+	~ in onSuccess event handler:
+		~ change "../php/upload" to this.options.base     same reason as above
+
++Demo/wrapperDemo.html
+	Demo for using the new wrapper class
+
++Demo/example_submitHandler.php
+
+Number.js
+	~ change prefixes "bytes" and "kb" tho capital "B"
+
++Source/uploadWrapper.js
+	This file contains the UploadManagerWrapper class.
+	This class contains the options and event handlers from your JS code in the demo, plus my methods.
+	+ I've added some new options (needed and used only in the wrapper): +option: fileInputClass, containerClass, formAction, wrapperDivClass, postArrayName
+
+Source/upload.js:
+	Besides the several fixes, the only real new functionality I added to upload.js is the new post data structure. (Now post because I changed the get method to post)
+	now all the data that uploadManager sends is in one array. The name of this array can be changed in the options (postArrayName).
+	Inside this array, the following structure exists:
+			array(
+				'firstFileName' => array(
+						[0] => array(
+							'name' => 'somefile.ext',
+	   						'file' => 'the encoded filepath',
+		  					'guid' => 'guid of the file, also the name of the info file' ),
+		 				[1] => array(
+							'name' => 'somefile.ext',
+	   						'file' => 'the encoded filepath',
+		  					'guid' => 'guid of the file, also the name of the info file' ),
+		 				...
+				),
+				'secondFileName' => array(
+						[0] => array(
+							'name' => 'somefile2.ext',
+	   						'file' => 'the encoded filepath',
+		  					'guid' => 'guid of the file, also the name of the info file' ),
+		 				...
+				),
+				...
+			);
+	This is much more clearer than before, and supports multiple files.
+	For this new structure, first I have to send the name of the uploadManager post array to the PHP. Since this can be changed with the postArrayName option,
+	I must generate a new hidden text field with the content of postArrayName. This happens in the prepareForm() method.
+	Also, a unique index must be generated for the file instances to build the array structure. For this I use the fileCounter member.
+	Finally I had to modify the name of the generated checkboxes at all three Transfer objects.
+	So these changes in a list:
+		+ prepareForm() method
+		+ members: fileCounter and postArrayName
+		+ in upload(): increase fileCounter. Since the drop event also calls upload, this is okay. And don't ever decrease this counter
+			because that can lead to marking two different files with the same index.
+		+ in upload(): add the two new options (fileCounter and postArrayName) to opt and call prepareForm()
+		~ in HTML5MultipartTransfert::createHTML(): change name fields. This also fixes the bug, that multiple file uploads are impossible because the lack of trailing []
+		~ in HTML5MultipartTransfert::createGuid(): change the CSS selector when assigning json.guid to the checkbox value
+		~ in Transfert::createElement(): change name fields here as well.
+		~ in HTML5Transfert::createHTML(): ...and here.
+
+php/upload.php
+	+ setlocale() on line 16: for file handling functions to work properly. See for example http://hu2.php.net/manual/en/function.basename.php, NOTES section
+
+php/upload.html5.php
+	~ add "charset=utf-8" to header. Just to be on the safe side.
+
+php/upload.html.php
+	~ array_pop(array_keys()) caused a "Strict Standards: Only variables should be passed by reference" notice.
+	~ change charset to utf-8 at line 28
+	~ add "charset=utf-8" to header. (line 68)
+
+php/download.php
+	~ at line 18, there was a PHP notice: "Strict Standards: Only variables should be passed by reference", so I exploded the code a little
+	+ call realpath() on $file before checking if it exists, because is_file() can't resolve for example "dir/../file".
+	- In my opinion, we don't need uploadHelper::safe_name(), so I commented it out, but we can discuss this if you don't agree.
+
+php/uploadhelper.php:
+	+ add uploadhelper::fixFileArrayIndexing(). See comment.
+	+ I need to call fixFileArrayIndexing() at the end.
+	If you think of some way to solve the continuous indexing in JS, than we won't need this.
+NOTES
+-----------
+remove checked="checked" from _gfile (and write back disabled="disabled") checkbox when js is fixed

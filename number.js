@@ -1,6 +1,6 @@
 
 	Number.implement({
-		
+
 		format: function(kSep, floatsep, decimals, fill) {
 
 			decimals = decimals == undefined ? 2 : decimals;
@@ -13,7 +13,7 @@
 				string = '' + integer,
 				str = '',
 				i, j;
-				
+
 			for(i = 0, j = string.length; j > 0; j-- && i++) str = (j > 1 && i % 3 == 2 ? kSep : '') + string.charAt(j-1) + str;
 
 			if (decimals === 0) return str;
@@ -26,13 +26,12 @@
 		},
 
 		toFileSize: function(units) {
-		
+
 			if(this == 0) return 0;
-			
-			var s = ['bytes', 'kb', 'MB', 'GB', 'TB', 'PB'],
+
+			var s = ['Bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
 				e = Math.floor(Math.log(this) / Math.log(1024));
 
 			return (this / Math.pow(1024, Math.floor(e))).toFixed(2) + " " + (units && units[e] ? units[e] : s[e]);
 		}
 	});
-	
