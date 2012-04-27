@@ -164,7 +164,7 @@ var UploadManagerWrapper = new Class(
 		maxsize: 3670016,
 
 		//use iframe
-		iframe: true,
+		iframe: false,
 
 		//prefix for upload container id
 		container: 'upload',

@@ -13,6 +13,12 @@
 	// if(!defined('MY_LOADER'))
 		// require_once(dirname(__FILE__).DS.'loader.php');
 
+	if(!defined('DS'))
+		define('DS', DIRECTORY_SEPARATOR);
+
+	if(!defined('TEMP_PATH'))
+		define('TEMP_PATH', dirname(__FILE__).DS.'tmp');
+
 	/**
 	* flags for file/directory copy, move
 	*/
@@ -99,6 +105,44 @@
 						$_REQUEST[$_REQUEST['uploadManager_postArrayName']][$managerInstanceName] = $_POST[$_POST['uploadManager_postArrayName']][$managerInstanceName] = array_merge( array(), $fileInfoArray );
 					}
 				}
+			}
+		}
+
+		/** Remove chunks if they exist.
+		*	@param $guid Guid of the file.*/
+		public static function removeChunks( $guid )
+		{
+			$file = realpath(TEMP_PATH.DS.$guid);
+			$infos = is_file($file) ? explode("\n", file_get_contents($file)) : array();
+			for($i = 0; $i < $infos[1]; $i++)
+			{
+				if(is_file(TEMP_PATH.DS.$infos[0].$i))
+					unlink(TEMP_PATH.DS.$infos[0].$i);
+			}
+		}
+
+		/** Remove file from temporary dir.
+		*	Delete the file, chunks and possible guid file from temp dir.
+		*	@param $hash If the file has a guid (was uploaded with multipart HTML5), pass the guid. Otherwise pass the encoded file path.*/
+		public static function removeFromTmp( $hash )
+		{
+			if( preg_match( '/^(\{{0,1}([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}\}{0,1})$/', $hash ) )
+			{
+				$guidFile = realpath(TEMP_PATH.DS.$hash);
+				$infos = is_file($guidFile) ? explode("\n", file_get_contents($guidFile)) : array();
+
+				if(is_file(TEMP_PATH.DS.$infos[0]))
+					unlink(TEMP_PATH.DS.$infos[0]);
+
+				self::removeChunks( $hash );
+				if(is_file($guidFile))
+					unlink($guidFile);
+			}
+			else
+			{
+				$filePath = self::decrypt($hash);
+				if(is_file($filePath))
+					unlink($filePath);
 			}
 		}
 

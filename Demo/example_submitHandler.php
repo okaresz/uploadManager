@@ -2,10 +2,22 @@
 
 	include "../php/uploadhelper.php";
 
-	echo '<pre>';
+	foreach( $_POST[$_POST['uploadManager_postArrayName']] as $uploadName => $files )
+	{
+		foreach( $files as $file )
+		{
+			echo $file['name']."\n";
+			echo $file['file']."\n"."\n";
 
-	print_r($_POST);
+			//move file to some new place
+			//rename( uploadhelper::decrypt($file['file']), 'wherewer you want' );
 
-	print_r($_GET);
+			//remove file from temp directory
+			if( isset($file['guid']) )
+				{ uploadhelper::removeFromTmp($file['guid']); }
+			else
+				{ uploadhelper::removeFromTmp($file['file']); }
+		}
+	}
 
 ?>

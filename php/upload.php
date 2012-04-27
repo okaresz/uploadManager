@@ -18,6 +18,8 @@
 	if(!defined('DS'))
 		define('DS', DIRECTORY_SEPARATOR);
 
+	require dirname(__FILE__).DS.'uploadhelper.php';
+
 	if(!defined('BASE_PATH'))
 		define('BASE_PATH', dirname(__FILE__));
 
@@ -27,8 +29,6 @@
 	//upload max size in bytes
 	if(!defined('UPLOAD_MAX_SIZE'))
 		define('UPLOAD_MAX_SIZE', 0); //2621440 2.5M
-
-	require dirname(__FILE__).DS.'uploadhelper.php';
 
 	if (!function_exists('apache_request_headers'))  {
 
